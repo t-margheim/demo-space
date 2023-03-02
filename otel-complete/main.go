@@ -4,6 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const serviceName = "AdderSvc"
@@ -34,8 +42,9 @@ func main() {
 func serviceA(ctx context.Context, port int) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/serviceA", serviceA_HttpHandler)
+	handler := otelhttp.NewHandler(mux, "server.http")
 	serverPort := fmt.Sprintf(":%d", port)
-	server := &http.Server{Addr: serverPort, Handler: mux}
+	server := &http.Server{Addr: serverPort, Handler: handler}
 
 	fmt.Println("serviceA listening on", server.Addr)
 	if err := server.ListenAndServe(); err != nil {
@@ -44,8 +53,12 @@ func serviceA(ctx context.Context, port int) {
 }
 
 func serviceA_HttpHandler(w http.ResponseWriter, r *http.Request) {
-	cli := &http.Client{}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, "http://localhost:8082/serviceB", nil)
+	ctx, span := otel.Tracer("myTracer").Start(r.Context(), "serviceA_HttpHandler")
+	defer span.End()
+	cli := &http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:8082/serviceB", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -60,8 +73,9 @@ func serviceA_HttpHandler(w http.ResponseWriter, r *http.Request) {
 func serviceB(ctx context.Context, port int) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/serviceB", serviceB_HttpHandler)
+	handler := otelhttp.NewHandler(mux, "server.http")
 	serverPort := fmt.Sprintf(":%d", port)
-	server := &http.Server{Addr: serverPort, Handler: mux}
+	server := &http.Server{Addr: serverPort, Handler: handler}
 
 	fmt.Println("serviceB listening on", server.Addr)
 	if err := server.ListenAndServe(); err != nil {
@@ -70,9 +84,42 @@ func serviceB(ctx context.Context, port int) {
 }
 
 func serviceB_HttpHandler(w http.ResponseWriter, r *http.Request) {
-	answer := add(r.Context(), 42, 1813)
+	ctx, span := otel.Tracer("myTracer").Start(r.Context(), "serviceB_HttpHandler")
+	defer span.End()
+
+	answer := add(ctx, 42, 1813)
 	w.Header().Add("SVC-RESPONSE", fmt.Sprint(answer))
 	fmt.Fprintf(w, "hello from serviceB: Answer is: %d", answer)
 }
 
-func add(ctx context.Context, x, y int64) int64 { return x + y }
+func add(ctx context.Context, x, y int64) int64 {
+	ctx, span := otel.Tracer("myTracer").Start(
+		ctx,
+		"add",
+		// add labels/tags/resources(if any) that are specific to this scope.
+		trace.WithAttributes(attribute.String("component", "addition")),
+		trace.WithAttributes(attribute.String("someKey", "someValue")),
+	)
+	defer span.End()
+
+	counter, _ := global.MeterProvider().
+		Meter(
+			"instrumentation/package/name",
+			metric.WithInstrumentationVersion("0.0.1"),
+		).
+		Int64Counter(
+			"add_counter",
+			instrument.WithDescription("how many times add function has been called."),
+		)
+	counter.Add(
+		ctx,
+		1,
+		// labels/tags
+		attribute.String("component", "addition"),
+	)
+
+	log := NewLogrus(ctx)
+	log.Info("add_called")
+
+	return x + y
+}
