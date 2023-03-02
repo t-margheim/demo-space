@@ -7,6 +7,9 @@ services:
     command: --config=/etc/otel-collector-config.yaml
     volumes:
       - ./confs/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./confs/server.crt:/etc/tls/server.crt
+      - ./confs/server.key:/etc/tls/server.key
+      - ./confs/rootCA.crt:/etc/tls/rootCA.crt
     ports:
       - "4317:4317" # OTLP over gRPC receiver
       - "9464:9464" # Prometheus exporter

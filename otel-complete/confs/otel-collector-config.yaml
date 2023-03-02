@@ -5,7 +5,10 @@ receivers:
       grpc:
         endpoint: 0.0.0.0:4317 # It is important that we do not use localhost
         tls:
-          insecure: true
+          cert_file: /etc/tls/server.crt
+          key_file: /etc/tls/server.key
+          ca_file: /etc/tls/rootCA.crt
+          client_ca_file: /etc/tls/rootCA.crt
 
 # (2) Processors
 processors:
@@ -43,4 +46,3 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [logging]
-            

@@ -18,6 +18,7 @@ setup_certs(){
   }
 
   { # create server certs.
+      # openssl req -new -newkey rsa:2048 -days 372 -nodes -x509 -subj "/C=US/ST=CA/O=MyOrg/CN=myOrgCA" -addext "subjectAltName=DNS:example.com,DNS:example.net,DNS:otel_collector,DNS:localhost" -CA confs/rootCA.crt -CAkey confs/rootCA.key -keyout "confs/server.key" -out confs/server.crt
     openssl \
       req \
       -new \
@@ -26,11 +27,10 @@ setup_certs(){
       -nodes \
       -x509 \
       -subj "/C=US/ST=CA/O=MyOrg/CN=myOrgCA" \
-      -addext "subjectAltName=DNS:example.com,DNS:example.net,DNS:otel_collector,DNS:localhost" \
-      -CA confs/rootCA.crt \
-      -CAkey confs/rootCA.key  \
-      -keyout confs/server.key \
-      -out confs/server.crt
+      -keyout ./confs/server.key \
+      -out ./confs/server.crt
+      # -CA ./confs/rootCA.crt \
+      # -CAkey ./confs/rootCA.key \
   }
 
   { # create client certs.
@@ -43,10 +43,10 @@ setup_certs(){
       -x509 \
       -subj "/C=US/ST=CA/O=MyOrg/CN=myOrgCA" \
       -addext "subjectAltName=DNS:example.com,DNS:example.net,DNS:otel_collector,DNS:localhost" \
-      -CA confs/rootCA.crt \
-      -CAkey confs/rootCA.key  \
       -keyout confs/client.key \
       -out confs/client.crt
+      # -CA confs/rootCA.crt \
+      # -CAkey confs/rootCA.key  \
   }
 
   { # clean

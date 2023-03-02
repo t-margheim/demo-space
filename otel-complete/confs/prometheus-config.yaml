@@ -2,6 +2,6 @@ global:
   evaluation_interval: 30s
   scrape_interval: 5s
 scrape_configs:
-- job_name: 'collector'
+  - job_name: 'collector'
     static_configs:
     - targets: ['otel_collector:9464'] 
