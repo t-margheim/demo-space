@@ -1,0 +1,11 @@
+### Exercise the endpoint
+POST http://localhost/hello HTTP/1.1
+content-type: application/json
+
+{
+    "name":"Galahad"
+}
+
+### See the metrics
+GET http://localhost/metrics
+
