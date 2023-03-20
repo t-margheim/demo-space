@@ -18,22 +18,22 @@ import (
 )
 
 func main() {
-	provider, err := setupMetricsProvider()
-	if err != nil {
-		panic(err)
-	}
-	meter := provider.Meter("github.com/t-margheim/demo-space/metrics-poc")
+	// provider, err := setupMetricsProvider()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// meter := provider.Meter("github.com/t-margheim/demo-space/metrics-poc")
 
-	err = rsmetrics.Initialize(meter)
-	if err != nil {
-		panic(err)
-	}
+	// err = rsmetrics.Initialize(meter)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	h := &handler{}
 	http.Handle("/hello", h)
 	http.Handle("/metrics", promhttp.Handler())
 
-	err = http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		panic(err)
 	}
